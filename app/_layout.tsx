@@ -1,43 +1,38 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { AuthProvider, useAuth } from '../contexts/AuthContexts'; // ปรับ path ตามที่คุณวางไฟล์จริง
 
 export default function RootLayout() {
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
+  return (
+    <AuthProvider>
+      <RootLayoutNav />
+    </AuthProvider>
+  );
+}
+
+function RootLayoutNav() {
+  const { isLoggedIn, loading } = useAuth();
   const segments = useSegments();
   const router = useRouter();
 
-  // 1. เช็ค Token ทันทีที่เปิดแอป
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const token = await AsyncStorage.getItem('user_token');
-        setIsLoggedIn(!!token); // ถ้ามี token เป็น true, ถ้าไม่มีเป็น false
-      } catch (error) {
-        setIsLoggedIn(false);
-      }
-    };
-
-    checkAuth();
-  }, []);
-
-  // 2. คอยสลับหน้าอัตโนมัติตามสถานะล็อกอิน
-  useEffect(() => {
-    
-    if (isLoggedIn === null) return; // กำลังเช็คอยู่ รอแป๊บ
+    // ถ้ายังโหลดข้อมูลเช็ค Token อยู่ ไม่ต้องทำอะไร
+    if (loading) return;
 
     const inTabsGroup = segments[0] === '(tabs)';
 
     if (!isLoggedIn && inTabsGroup) {
+      // ถ้ายังไม่ล็อกอิน แต่อยู่ในหน้าแท็บ -> ดีดไปหน้า login
       router.replace('/login');
     } else if (isLoggedIn && segments[0] === 'login') {
+      // ถ้าล็อกอินแล้ว แต่อยู่หน้า login -> ดีดไปหน้า tabs
       router.replace('/(tabs)');
     }
-  }, [isLoggedIn, segments]);
+  }, [isLoggedIn, loading, segments]);
 
-  // หน้าจอโหลดระหว่างเช็ค Token (กันหน้าจอขาวพริบ)
-  if (isLoggedIn === null) {
+  // หน้าจอโหลดระหว่างเช็คสถานะ
+  if (loading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#0284c7" />

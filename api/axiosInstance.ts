@@ -2,7 +2,7 @@ import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const axiosInstance = axios.create({
-  baseURL: process.env.EXPO_PUBLIC_API_URL || 'https://api.example.com',
+  baseURL: process.env.EXPO_PUBLIC_API_URL || 'http://10.145.195.216:5000/api',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',

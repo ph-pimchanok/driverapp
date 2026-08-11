@@ -18,7 +18,8 @@ import { useAuth } from '../hooks/useAuth';
 import { Snackbar, SnackbarType } from '../components/Snackbar';
 
 export const LoginScreen = () => {
-  const [phone, setPhone] = useState<string>('');
+
+  const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
 
@@ -37,18 +38,22 @@ export const LoginScreen = () => {
   };
 
   const handleLogin = async () => {
-    if (!phone.trim() || !password.trim()) {
+
+    if (!email.trim() || !password.trim()) {
       triggerSnackbar('กรุณากรอกเบอร์โทรศัพท์และรหัสผ่าน', 'warning');
       return;
     }
-
-    const result = await login({ phone, password });
+    
+    const result = await login({ email, password });
 
     if (result.success) {
+
       triggerSnackbar('เข้าสู่ระบบสำเร็จ', 'success');
+
       setTimeout(() => {
         router.replace('/(tabs)');
-      }, 500); // หน่วงเวลานิดนึงให้ Snackbar แสดงผลก่อนย้ายหน้า
+      }, 500);
+
     } else {
       triggerSnackbar(result.error || 'เบอร์โทรศัพท์หรือรหัสผ่านไม่ถูกต้อง', 'error');
     }
@@ -81,17 +86,16 @@ export const LoginScreen = () => {
           {/* Form */}
           <View style={styles.form}>
             {/* Input: Phone */}
-            <Text style={styles.label}>เบอร์โทรศัพท์</Text>
+            <Text style={styles.label}>อีเมล</Text>
             <View style={styles.inputContainer}>
-              <Ionicons name="call-outline" size={20} color="#64748b" style={styles.inputIcon} />
+              <Ionicons name="mail" size={20} color="#64748b" style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
-                placeholder="08X-XXX-XXXX"
+                placeholder="xxx@gmail.com"
                 placeholderTextColor="#94a3b8"
-                keyboardType="phone-pad"
-                value={phone}
-                onChangeText={setPhone}
-                maxLength={10}
+                keyboardType="email-address"
+                value={email}
+                onChangeText={setEmail}
               />
             </View>
 

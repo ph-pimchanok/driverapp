@@ -14,7 +14,7 @@ export interface Job {
 
 // ข้อมูลที่ต้องส่งไปตอน Login
 export interface LoginPayload {
-  phone: string;
+  email: string;
   password: string;
 }
 
@@ -23,10 +23,6 @@ export interface LoginResponse {
   success: boolean;
   message?: string;
   token: string;
-  driver: {
-    id: string;
-    name: string;
-    phone: string;
-    avatarUrl?: string;
-  };
+  role_ID: number | string,
+  employee_name: string 
 }

@@ -17,7 +17,6 @@ export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
-  // เริ่มต้นเป็น true เพราะต้องเช็ค token ใน AsyncStorage ก่อนว่ามีอยู่ไหม
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -51,6 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // บันทึกข้อมูล Driver (id, name, phone, avatarUrl) เป็น JSON string
         await AsyncStorage.setItem('role_ID', response.role_ID.toString());
         await AsyncStorage.setItem('employee_name', response.employee_name);
+        await AsyncStorage.setItem('vehicle_id' , response.vehicle_id.toString())
 
         // สำคัญ: อัปเดต state ทันทีหลัง login สำเร็จ
         setIsLoggedIn(true);

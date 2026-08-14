@@ -24,5 +24,11 @@ export interface LoginResponse {
   message?: string;
   token: string;
   role_ID: number | string,
-  employee_name: string 
+  employee_name: string ,
+  vehicle_id: number | string 
+}
+export interface OrderResponse {
+  success : boolean,
+  message : string,
+  data : Object
 }

@@ -1,159 +1,217 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   StyleSheet,
   Text,
   View,
   ScrollView,
   TouchableOpacity,
-  Switch,
+  Alert,
+  ActivityIndicator,
+  RefreshControl, // 1. Import RefreshControl
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { SafeAreaView } from "react-native-safe-area-context";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Snackbar } from "../components/Snackbar";
+import { WeatherCard } from "../components/WeatherCard";
+import { useAuth } from "../contexts/AuthContexts";
+import { useOrder } from "../hooks/useOrder";
+
+// Config สำหรับแปลงสถานะ สีพื้นหลัง และสีข้อความ
+const ORDER_STATUS_CONFIG: Record<string, { label: string; bg: string; text: string }> = {
+  pending: { label: "รอดำเนินการ", bg: "#fef9c3", text: "#854d0e" },
+  delivering: { label: "กำลังจัดส่ง", bg: "#e0f2fe", text: "#0369a1" },
+  delivered: { label: "จัดส่งสำเร็จ", bg: "#dcfce7", text: "#166534" },
+  success: { label: "จัดส่งสำเร็จ", bg: "#dcfce7", text: "#166534" },
+  cancelled: { label: "ยกเลิกแล้ว", bg: "#fee2e2", text: "#991b1b" },
+};
 
 export const HomeScreen: React.FC = () => {
-  const [isOnline, setIsOnline] = useState(false);
+  const { logout } = useAuth();
+  // 2. ดึงฟังก์ชัน refetch (หรือชื่อที่คุณใช้โหลดข้อมูลใหม่) มาจาก useOrder
+  const { data: orders, loading, error, refetch } = useOrder(); 
+
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
+  const [employeeName, setEmployeeName] = useState("คนขับสุดหล่อ");
+  
+  // 3. สร้าง State สำหรับจับสถานะการรีเฟรช
+  const [refreshing, setRefreshing] = useState(false);
 
-  // ฟังก์ชันสลับสถานะออนไลน์
-  const toggleOnlineStatus = () => {
-    const newStatus = !isOnline;
-    setIsOnline(newStatus);
-    setSnackbarMessage(
-      newStatus
-        ? "🟢 เปิดรับงานแล้ว! พร้อมลุย"
-        : "🔴 ปิดรับงาน พักผ่อนให้เต็มที่ครับ",
+  useEffect(() => {
+    const fetchEmployeeName = async () => {
+      try {
+        const storedName = await AsyncStorage.getItem("employee_name");
+        if (storedName) {
+          setEmployeeName(storedName);
+        }
+      } catch (error) {
+        console.error("Failed to load employee name from storage", error);
+      }
+    };
+    fetchEmployeeName();
+  }, []);
+
+  const handleLogoutPress = () => {
+    Alert.alert(
+      "ยืนยันการออกจากระบบ",
+      "คุณต้องการออกจากระบบใช่หรือไม่?",
+      [
+        { text: "ยกเลิก", style: "cancel" },
+        {
+          text: "ออกจากระบบ",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await logout();
+            } catch (error) {
+              console.error("Failed to logout", error);
+            }
+          },
+        },
+      ],
+      { cancelable: true }
     );
-    setSnackbarVisible(true);
   };
 
+  // 4. ฟังก์ชันจัดการเมื่อผู้ใช้ดึงหน้าจอลง
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      if (refetch) {
+        await refetch(); // เรียกใช้งานฟังก์ชันดึงข้อมูลใหม่
+      }
+    } catch (error) {
+      console.error("Failed to refresh orders", error);
+    } finally {
+      setRefreshing(false); // ปิดแอนิเมชันโหลด
+    }
+  }, [refetch]);
+
+  const totalOrders = orders?.length || 0;
+  const completedOrders = orders?.filter(
+    (order: any) => order.delivery_status === "completed" || order.delivery_status === "delivered" || order.delivery_status === "success"
+  ).length || 0;
+
+  const activeOrders = orders?.filter(
+    (order: any) =>
+      order.delivery_status !== "completed" &&
+      order.delivery_status !== "delivered" &&
+      order.delivery_status !== "success" &&
+      order.delivery_status !== "cancelled"
+  ) || [];
+
   return (
-    <View style={styles.container}>
-      {/* --- ส่วนที่ฟิกซ์อยู่กับที่ (ไม่เลื่อน) --- */}
+    <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.fixedHeaderSection}>
         {/* Header */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.greeting}>สวัสดี, คนขับสุดหล่อ 👋</Text>
+            <Text style={styles.greeting}>สวัสดี, {employeeName}</Text>
             <Text style={styles.subtitle}>พร้อมส่งแก๊สวันนี้หรือยัง?</Text>
           </View>
-          <TouchableOpacity style={styles.profileIcon}>
-            <Ionicons name="person-circle" size={48} color="#0284c7" />
+          <TouchableOpacity onPress={handleLogoutPress}>
+            <Ionicons name="log-out-outline" size={36} color="#eb2929" />
           </TouchableOpacity>
         </View>
 
-        {/* Status (เปิด/ปิดรับงาน) */}
-        <View style={styles.statusCard}>
-          <View style={styles.statusTextContainer}>
-            <Ionicons
-              name={isOnline ? "car" : "car-outline"}
-              size={28}
-              color={isOnline ? "#10b981" : "#64748b"}
-            />
-            <View style={{ marginLeft: 12 }}>
-              <Text style={styles.statusTitle}>สถานะปัจจุบัน</Text>
-              <Text
-                style={[
-                  styles.statusSubtitle,
-                  { color: isOnline ? "#10b981" : "#64748b" },
-                ]}
-              >
-                {isOnline ? "กำลังออนไลน์รับงาน" : "ออฟไลน์"}
-              </Text>
-            </View>
-          </View>
-          <Switch
-            trackColor={{ false: "#cbd5e1", true: "#34d399" }}
-            thumbColor={isOnline ? "#10b981" : "#f1f5f9"}
-            onValueChange={toggleOnlineStatus}
-            value={isOnline}
-          />
-        </View>
+        {/* Weather Card */}
+        <WeatherCard />
 
         {/* Summary Stats */}
         <Text style={styles.sectionTitle}>สรุปยอดวันนี้</Text>
         <View style={styles.statsContainer}>
           <View style={styles.statBox}>
-            <Ionicons name="cash-outline" size={24} color="#f59e0b" />
-            <Text style={styles.statValue}>฿1,250</Text>
-            <Text style={styles.statLabel}>รายได้วันนี้</Text>
+            <Ionicons name="cube-outline" size={24} color="#0284c7" />
+            <Text style={styles.statValue}>{totalOrders}</Text>
+            <Text style={styles.statLabel}>ออเดอร์ทั้งหมด</Text>
           </View>
           <View style={styles.statBox}>
-            <Ionicons name="cube-outline" size={24} color="#8b5cf6" />
-            <Text style={styles.statValue}>12</Text>
-            <Text style={styles.statLabel}>รอบจัดส่ง</Text>
+            <Ionicons name="checkmark-circle-outline" size={24} color="#10b981" />
+            <Text style={styles.statValue}>{completedOrders}</Text>
+            <Text style={styles.statLabel}>ส่งสำเร็จ</Text>
           </View>
         </View>
 
-        {/* Recent Jobs Header (ฟิกซ์ไว้ด้วยจะได้ดูสวย) */}
+        {/* Recent Jobs Header */}
         <View style={styles.recentJobsHeader}>
-          <Text style={styles.sectionTitle}>งานล่าสุด</Text>
+          <Text style={styles.sectionTitle}>งานวันนี้ (ที่ยังไม่ส่ง)</Text>
           <TouchableOpacity>
             <Text style={styles.seeAllText}>ดูทั้งหมด</Text>
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* --- ส่วนที่เลื่อนได้ (เฉพาะรายการงาน) --- */}
+      {/* --- ส่วนที่เลื่อนได้ --- */}
       <ScrollView
         style={styles.scrollArea}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        // 5. ใส่ RefreshControl เข้าไปใน ScrollView
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={["#0284c7"]} // สีของวงกลมโหลด (สำหรับ Android)
+            tintColor={"#0284c7"} // สีของวงกลมโหลด (สำหรับ iOS)
+          />
+        }
       >
-        <View style={styles.jobCard}>
-          <View style={styles.jobIcon}>
-            <Ionicons name="flame" size={20} color="#ef4444" />
+        {loading && !refreshing ? ( // ป้องกันไม่ให้โชว์ Loading สองที่ซ้อนกันตอนดึงรีเฟรช
+          <View style={styles.centerContainer}>
+            <ActivityIndicator size="large" color="#0284c7" />
+            <Text style={styles.loadingText}>กำลังโหลดรายการออเดอร์...</Text>
           </View>
-          <View style={styles.jobDetails}>
-            <Text style={styles.jobTitle}>ส่ง ปตท. 15 กก. (1 ถัง)</Text>
-            <Text style={styles.jobAddress}>หมู่บ้านสินธร, ซอย 4</Text>
+        ) : error ? (
+          <View style={styles.centerContainer}>
+            <Ionicons name="alert-circle-outline" size={40} color="#ef4444" />
+            <Text style={styles.errorText}>{error}</Text>
           </View>
-          <Text style={styles.jobPrice}>฿350</Text>
-        </View>
+        ) : activeOrders.length === 0 ? (
+          <View style={styles.centerContainer}>
+            <Ionicons name="cube-outline" size={40} color="#94a3b8" />
+            <Text style={styles.emptyText}>ไม่มีรายการออเดอร์ที่ต้องจัดส่งในขณะนี้</Text>
+          </View>
+        ) : (
+          activeOrders.map((order: any) => {
+            const statusInfo = ORDER_STATUS_CONFIG[order.delivery_status] || {
+              label: order.delivery_status || "ไม่ทราบสถานะ",
+              bg: "#f1f5f9",
+              text: "#475569",
+            };
 
-        <View style={styles.jobCard}>
-          <View style={styles.jobIcon}>
-            <Ionicons name="flame" size={20} color="#ef4444" />
-          </View>
-          <View style={styles.jobDetails}>
-            <Text style={styles.jobTitle}>ส่ง เวิลด์แก๊ส 4 กก. (2 ถัง)</Text>
-            <Text style={styles.jobAddress}>ร้านอาหารตามสั่ง เจ๊จู</Text>
-          </View>
-          <Text style={styles.jobPrice}>฿280</Text>
-        </View>
-
-        <View style={styles.jobCard}>
-          <View style={styles.jobIcon}>
-            <Ionicons name="flame" size={20} color="#ef4444" />
-          </View>
-          <View style={styles.jobDetails}>
-            <Text style={styles.jobTitle}>ส่ง ยูนิคแก๊ส 15 กก. (1 ถัง)</Text>
-            <Text style={styles.jobAddress}>คอนโดลุมพินี, ตึก A</Text>
-          </View>
-          <Text style={styles.jobPrice}>฿360</Text>
-        </View>
-        
-        <View style={styles.jobCard}>
-          <View style={styles.jobIcon}>
-            <Ionicons name="flame" size={20} color="#ef4444" />
-          </View>
-          <View style={styles.jobDetails}>
-            <Text style={styles.jobTitle}>ส่ง ปตท. 4 กก. (จิ๋วแจ๋ว)</Text>
-            <Text style={styles.jobAddress}>หอพักป้าสมศรี</Text>
-          </View>
-          <Text style={styles.jobPrice}>฿150</Text>
-        </View>
-
-        <View style={styles.jobCard}>
-          <View style={styles.jobIcon}>
-            <Ionicons name="flame" size={20} color="#ef4444" />
-          </View>
-          <View style={styles.jobDetails}>
-            <Text style={styles.jobTitle}>ส่ง ปตท. 48 กก. (1 ถัง)</Text>
-            <Text style={styles.jobAddress}>ร้านหมูกระทะ นายต่อ</Text>
-          </View>
-          <Text style={styles.jobPrice}>฿1,200</Text>
-        </View>
+            return (
+              <View key={order.order_id} style={styles.jobCard}>
+                <View style={styles.jobIcon}>
+                  <Ionicons name="flame" size={20} color="#ef4444" />
+                </View>
+                <View style={styles.jobDetails}>
+                  <Text style={styles.jobTitle} numberOfLines={1}>
+                    {order.customer_name}
+                  </Text>
+                  <Text style={styles.jobAddress} numberOfLines={1}>
+                    {order.address}
+                  </Text>
+                </View>
+                <View style={styles.priceContainer}>
+                  <Text style={styles.jobPrice}>
+                    ฿{Number(order.total_amount).toLocaleString()}
+                  </Text>
+                  <View
+                    style={[
+                      styles.statusBadge,
+                      { backgroundColor: statusInfo.bg },
+                    ]}
+                  >
+                    <Text style={[styles.statusText, { color: statusInfo.text }]}>
+                      {statusInfo.label}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            );
+          })
+        )}
       </ScrollView>
 
       {/* Snackbar */}
@@ -162,7 +220,7 @@ export const HomeScreen: React.FC = () => {
         message={snackbarMessage}
         onDismiss={() => setSnackbarVisible(false)}
       />
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -173,11 +231,10 @@ const styles = StyleSheet.create({
   },
   fixedHeaderSection: {
     paddingHorizontal: 20,
-    paddingTop: 20,
-    // ไม่ใส่ paddingBottom เยอะ เพื่อให้ ScrollView ต่อกันเนียนๆ
+    paddingTop: 10,
   },
   scrollArea: {
-    flex: 1, // สำคัญมาก ทำให้ ScrollView กินพื้นที่ที่เหลือทั้งหมด
+    flex: 1,
   },
   scrollContent: {
     paddingHorizontal: 20,
@@ -188,8 +245,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginTop: 20,
-    marginBottom: 24,
+    marginBottom: 16,
   },
   greeting: {
     fontSize: 24,
@@ -200,38 +256,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#64748b",
     marginTop: 4,
-  },
-  profileIcon: {
-    backgroundColor: "#e0f2fe",
-    borderRadius: 30,
-  },
-  statusCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: "#ffffff",
-    padding: 16,
-    borderRadius: 16,
-    marginBottom: 24,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  statusTextContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  statusTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#334155",
-  },
-  statusSubtitle: {
-    fontSize: 13,
-    marginTop: 2,
-    fontWeight: "500",
   },
   sectionTitle: {
     fontSize: 18,
@@ -311,11 +335,45 @@ const styles = StyleSheet.create({
   jobAddress: {
     fontSize: 13,
     color: "#64748b",
-    marginTop: 4,
+    marginTop: 2,
+  },
+  priceContainer: {
+    alignItems: "flex-end",
   },
   jobPrice: {
     fontSize: 16,
     fontWeight: "bold",
     color: "#10b981",
+  },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    marginTop: 6,
+  },
+  statusText: {
+    fontSize: 11,
+    fontWeight: "600",
+  },
+  centerContainer: {
+    paddingVertical: 40,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  loadingText: {
+    marginTop: 10,
+    color: "#64748b",
+    fontSize: 14,
+  },
+  errorText: {
+    marginTop: 10,
+    color: "#ef4444",
+    fontSize: 14,
+    textAlign: "center",
+  },
+  emptyText: {
+    marginTop: 10,
+    color: "#94a3b8",
+    fontSize: 14,
   },
 });

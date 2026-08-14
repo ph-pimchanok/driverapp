@@ -1,11 +1,13 @@
 import React, { useEffect } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
-import { AuthProvider, useAuth } from '../contexts/AuthContexts'; // ปรับ path ตามที่คุณวางไฟล์จริง
+import { StatusBar } from 'expo-status-bar'; // 1. นำเข้า StatusBar
+import { AuthProvider, useAuth } from '../contexts/AuthContexts';
 
 export default function RootLayout() {
   return (
     <AuthProvider>
+      <StatusBar hidden={true} translucent />
       <RootLayoutNav />
     </AuthProvider>
   );
@@ -17,16 +19,13 @@ function RootLayoutNav() {
   const router = useRouter();
 
   useEffect(() => {
-    // ถ้ายังโหลดข้อมูลเช็ค Token อยู่ ไม่ต้องทำอะไร
     if (loading) return;
 
     const inTabsGroup = segments[0] === '(tabs)';
 
     if (!isLoggedIn && inTabsGroup) {
-      // ถ้ายังไม่ล็อกอิน แต่อยู่ในหน้าแท็บ -> ดีดไปหน้า login
       router.replace('/login');
     } else if (isLoggedIn && segments[0] === 'login') {
-      // ถ้าล็อกอินแล้ว แต่อยู่หน้า login -> ดีดไปหน้า tabs
       router.replace('/(tabs)');
     }
   }, [isLoggedIn, loading, segments]);
@@ -41,6 +40,7 @@ function RootLayoutNav() {
   }
 
   return (
+    
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="login" options={{ headerShown: false }} />
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />

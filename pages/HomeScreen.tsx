@@ -7,35 +7,32 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
-  RefreshControl, // 1. Import RefreshControl
+  RefreshControl,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useRouter } from "expo-router"; // 1. นำเข้า useRouter สำหรับเปลี่ยนหน้า
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Snackbar } from "../components/Snackbar";
 import { WeatherCard } from "../components/WeatherCard";
 import { useAuth } from "../contexts/AuthContexts";
 import { useOrder } from "../hooks/useOrder";
 
-// Config สำหรับแปลงสถานะ สีพื้นหลัง และสีข้อความ
 const ORDER_STATUS_CONFIG: Record<string, { label: string; bg: string; text: string }> = {
   pending: { label: "รอดำเนินการ", bg: "#fef9c3", text: "#854d0e" },
   delivering: { label: "กำลังจัดส่ง", bg: "#e0f2fe", text: "#0369a1" },
   delivered: { label: "จัดส่งสำเร็จ", bg: "#dcfce7", text: "#166534" },
-  success: { label: "จัดส่งสำเร็จ", bg: "#dcfce7", text: "#166534" },
   cancelled: { label: "ยกเลิกแล้ว", bg: "#fee2e2", text: "#991b1b" },
 };
 
 export const HomeScreen: React.FC = () => {
+  const router = useRouter(); // 2. ประกาศใช้ router
   const { logout } = useAuth();
-  // 2. ดึงฟังก์ชัน refetch (หรือชื่อที่คุณใช้โหลดข้อมูลใหม่) มาจาก useOrder
   const { data: orders, loading, error, refetch } = useOrder(); 
 
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
   const [employeeName, setEmployeeName] = useState("คนขับสุดหล่อ");
-  
-  // 3. สร้าง State สำหรับจับสถานะการรีเฟรช
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
@@ -74,30 +71,28 @@ export const HomeScreen: React.FC = () => {
     );
   };
 
-  // 4. ฟังก์ชันจัดการเมื่อผู้ใช้ดึงหน้าจอลง
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
       if (refetch) {
-        await refetch(); // เรียกใช้งานฟังก์ชันดึงข้อมูลใหม่
+        await refetch();
       }
     } catch (error) {
       console.error("Failed to refresh orders", error);
     } finally {
-      setRefreshing(false); // ปิดแอนิเมชันโหลด
+      setRefreshing(false);
     }
   }, [refetch]);
 
   const totalOrders = orders?.length || 0;
   const completedOrders = orders?.filter(
-    (order: any) => order.delivery_status === "completed" || order.delivery_status === "delivered" || order.delivery_status === "success"
+    (order: any) => order.delivery_status === "completed" || order.delivery_status === "delivered"
   ).length || 0;
 
   const activeOrders = orders?.filter(
     (order: any) =>
       order.delivery_status !== "completed" &&
       order.delivery_status !== "delivered" &&
-      order.delivery_status !== "success" &&
       order.delivery_status !== "cancelled"
   ) || [];
 
@@ -147,17 +142,16 @@ export const HomeScreen: React.FC = () => {
         style={styles.scrollArea}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
-        // 5. ใส่ RefreshControl เข้าไปใน ScrollView
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            colors={["#0284c7"]} // สีของวงกลมโหลด (สำหรับ Android)
-            tintColor={"#0284c7"} // สีของวงกลมโหลด (สำหรับ iOS)
+            colors={["#0284c7"]}
+            tintColor={"#0284c7"}
           />
         }
       >
-        {loading && !refreshing ? ( // ป้องกันไม่ให้โชว์ Loading สองที่ซ้อนกันตอนดึงรีเฟรช
+        {loading && !refreshing ? (
           <View style={styles.centerContainer}>
             <ActivityIndicator size="large" color="#0284c7" />
             <Text style={styles.loadingText}>กำลังโหลดรายการออเดอร์...</Text>
@@ -181,7 +175,18 @@ export const HomeScreen: React.FC = () => {
             };
 
             return (
-              <View key={order.order_id} style={styles.jobCard}>
+              // 3. เปลี่ยนจาก View ธรรมดาเป็น TouchableOpacity แล้วส่ง order_id ไปยังหน้า subdetail
+              <TouchableOpacity
+                key={order.order_id}
+                style={styles.jobCard}
+                activeOpacity={0.7}
+                onPress={() => {
+                  router.push({
+                    pathname: "/subdetail", // หรือชื่อ path ของหน้า SubDetail ตามโครงสร้างโฟลเดอร์ของคุณ (เช่น "/(routes)/subdetail" หรือ "./subdetail")
+                    params: { order_id: order.order_id },
+                  });
+                }}
+              >
                 <View style={styles.jobIcon}>
                   <Ionicons name="flame" size={20} color="#ef4444" />
                 </View>
@@ -208,7 +213,7 @@ export const HomeScreen: React.FC = () => {
                     </Text>
                   </View>
                 </View>
-              </View>
+              </TouchableOpacity>
             );
           })
         )}

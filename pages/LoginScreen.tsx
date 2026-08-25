@@ -13,12 +13,10 @@ import {
   Keyboard,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
 import { useAuth } from '../hooks/useAuth';
 import { Snackbar, SnackbarType } from '../components/Snackbar';
 
 export const LoginScreen = () => {
-
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
@@ -28,40 +26,38 @@ export const LoginScreen = () => {
   const [snackbarMessage, setSnackbarMessage] = useState<string>('');
   const [snackbarType, setSnackbarType] = useState<SnackbarType>('error');
 
-  const { login, loading } = useAuth();
+  // 💡 ดึง error มาจาก useAuth() โดยตรง (ใช้ตัวเดียวกับ AuthContext)
+  const { login, loading, error } = useAuth();
 
   const triggerSnackbar = (message: string, type: SnackbarType = 'error') => {
-    
     setSnackbarMessage(message);
     setSnackbarType(type);
     setSnackbarVisible(true);
   };
 
   const handleLogin = async () => {
+    Keyboard.dismiss();
 
     if (!email.trim() || !password.trim()) {
-      triggerSnackbar('กรุณากรอกเบอร์โทรศัพท์และรหัสผ่าน', 'warning');
+      const msg = 'กรุณากรอกอีเมลและรหัสผ่าน';
+      triggerSnackbar(msg, 'warning');
       return;
     }
     
     const result = await login({ email, password });
 
     if (result.success) {
-
       triggerSnackbar('เข้าสู่ระบบสำเร็จ', 'success');
 
-      setTimeout(() => {
-        router.replace('/(tabs)');
-      }, 500);
-
     } else {
-      triggerSnackbar(result.error || 'เบอร์โทรศัพท์หรือรหัสผ่านไม่ถูกต้อง', 'error');
+      const err = result.error || 'อีเมลหรือรหัสผ่านไม่ถูกต้อง';
+      triggerSnackbar(err, 'error');
     }
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Custom Animated Snackbar พร้อมรับค่า type (success, error, warning, info) */}
+      {/* Custom Animated Snackbar */}
       <Snackbar
         visible={snackbarVisible}
         message={snackbarMessage}
@@ -85,15 +81,16 @@ export const LoginScreen = () => {
 
           {/* Form */}
           <View style={styles.form}>
-            {/* Input: Phone */}
+            {/* Input: Email */}
             <Text style={styles.label}>อีเมล</Text>
-            <View style={styles.inputContainer}>
+            <View style={[styles.inputContainer, error && styles.inputErrorBorder]}>
               <Ionicons name="mail" size={20} color="#64748b" style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
                 placeholder="xxx@gmail.com"
                 placeholderTextColor="#94a3b8"
                 keyboardType="email-address"
+                autoCapitalize="none"
                 value={email}
                 onChangeText={setEmail}
               />
@@ -101,7 +98,7 @@ export const LoginScreen = () => {
 
             {/* Input: Password */}
             <Text style={styles.label}>รหัสผ่าน</Text>
-            <View style={styles.inputContainer}>
+            <View style={[styles.inputContainer, error && styles.inputErrorBorder]}>
               <Ionicons name="lock-closed-outline" size={20} color="#64748b" style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
@@ -122,6 +119,14 @@ export const LoginScreen = () => {
                 />
               </TouchableOpacity>
             </View>
+
+            {/* 🔴 Inline Error Box (แสดง error จาก AuthContext ทันทีตั้งแต่คลิกแรก) */}
+            {error ? (
+              <View style={styles.errorBox}>
+                <Ionicons name="alert-circle-outline" size={18} color="#dc2626" style={styles.errorIcon} />
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            ) : null}
 
             {/* Submit Button */}
             <TouchableOpacity
@@ -196,6 +201,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     height: 50,
   },
+  inputErrorBorder: {
+    borderColor: '#fca5a5',
+  },
   inputIcon: {
     marginRight: 8,
   },
@@ -207,13 +215,33 @@ const styles = StyleSheet.create({
   eyeIcon: {
     padding: 4,
   },
+  errorBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fef2f2',
+    borderWidth: 1,
+    borderColor: '#fecaca',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginTop: 16,
+  },
+  errorIcon: {
+    marginRight: 8,
+  },
+  errorText: {
+    color: '#dc2626',
+    fontSize: 13,
+    fontWeight: '500',
+    flex: 1,
+  },
   button: {
     backgroundColor: '#0284c7',
     height: 52,
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 24,
+    marginTop: 20,
     shadowColor: '#0284c7',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,

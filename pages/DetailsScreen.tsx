@@ -11,7 +11,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useOrder } from "../hooks/useOrder";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 
 const ORDER_STATUS_CONFIG: Record<
   string,
@@ -43,6 +43,15 @@ export const DetailsScreen: React.FC = () => {
       setRefreshing(false);
     }
   }, [refetch]);
+
+
+  useFocusEffect(
+    useCallback(() => {
+      if (refetch) {
+        refetch();
+      }
+    }, [refetch])
+  );
 
   const filteredOrders =
     orders?.filter((order: any) => {

@@ -1,10 +1,30 @@
 import React, { useEffect } from 'react';
-import { Stack, useRouter, useSegments } from 'expo-router';
+import { Stack, useSegments, useRouter } from 'expo-router';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
-import { StatusBar } from 'expo-status-bar'; // 1. นำเข้า StatusBar
+import { StatusBar } from 'expo-status-bar';
 import { AuthProvider, useAuth } from '../contexts/AuthContexts';
 
+import { socket } from '../services/socket';
+
 export default function RootLayout() {
+  useEffect(() => {
+    socket.connect();
+
+    socket.on("connect", () => {
+      console.log("🟢 Global Socket Connected:", socket.id);
+    });
+
+    socket.on("connect_error", (err) => {
+      console.error("🔴 Global Socket Connection Error:", err.message);
+    });
+
+    return () => {
+      socket.off("connect");
+      socket.off("connect_error");
+      socket.disconnect();
+    };
+  }, []);
+
   return (
     <AuthProvider>
       <StatusBar hidden={true} translucent />
@@ -14,24 +34,43 @@ export default function RootLayout() {
 }
 
 function RootLayoutNav() {
-  const { isLoggedIn, loading } = useAuth();
+  const { isLoggedIn, loading, checkEmployeeStatus, isInactive, statusChecked } = useAuth();
   const segments = useSegments();
   const router = useRouter();
 
+  // เช็คสถานะพนักงานเมื่อล็อกอินอยู่
+  useEffect(() => {
+    if (isLoggedIn) {
+      checkEmployeeStatus();
+    }
+  }, [isLoggedIn]);
+
   useEffect(() => {
     if (loading) return;
+    // 💡 ถ้า login อยู่แต่ยังเช็คสถานะพนักงานไม่เสร็จ ห้าม route ก่อน — นี่คือจุดกันกระพริบ
+    if (isLoggedIn && !statusChecked) return;
 
-    const inTabsGroup = segments[0] === '(tabs)';
+    const inAuthGroup = segments[0] === 'login';
+    const inSuspendedScreen = segments[0] === 'suspended';
 
-    if (!isLoggedIn && inTabsGroup) {
+    if (isLoggedIn && isInactive && !inSuspendedScreen) {
+      router.replace('/suspended');
+    }
+    else if ((!isLoggedIn || !isInactive) && inSuspendedScreen) {
+      router.replace(isLoggedIn ? '/(tabs)' : '/login');
+    }
+    // ถ้ายังไม่ล็อกอิน แต่พยายามเข้าหน้าอื่น -> ดีดไปหน้า login
+    else if (!isLoggedIn && !inAuthGroup) {
       router.replace('/login');
-    } else if (isLoggedIn && segments[0] === 'login') {
+    }
+    // ถ้าล็อกอินแล้ว แต่ยังค้างอยู่หน้า login -> ดีดไปหน้า tabs
+    else if (isLoggedIn && inAuthGroup) {
       router.replace('/(tabs)');
     }
-  }, [isLoggedIn, loading, segments]);
+  }, [isLoggedIn, isInactive, statusChecked, segments, loading]);
 
-  // หน้าจอโหลดระหว่างเช็คสถานะ
-  if (loading) {
+  // แสดงหน้าจอโหลดระหว่างรอเช็ค token และรอเช็คสถานะพนักงาน
+  if (loading || (isLoggedIn && !statusChecked)) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#0284c7" />
@@ -40,10 +79,10 @@ function RootLayoutNav() {
   }
 
   return (
-    
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="login" options={{ headerShown: false }} />
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="suspended" options={{ headerShown: false }} />
     </Stack>
   );
 }

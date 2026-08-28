@@ -61,19 +61,20 @@ export const SubDetail: React.FC = () => {
     updateStatusVihicle
   } = useSubDetail(order_id, router);
 
-  const onSubmitDelivery = async () => {
+const onSubmitDelivery = async () => {
     try {
       await handleConfirmDelivery();
       triggerSnackbar("ยืนยันการจัดส่งสำเร็จ", "success");
 
-      refetch()
+      refetch();
 
       const remainingOrders = (orders || []).filter(
-        (o: any) => o.order_id !== Number(order_id) && o.delivery_status !== "delivered"
+        (o: any) => Number(o.order_id) !== Number(order_id) && 
+                    o.delivery_status !== "delivered" && 
+                    o.delivery_status !== "cancelled"
       );
 
       if (remainingOrders.length === 0) {
-
             const vehicleId = await AsyncStorage.getItem('vehicle_id'); 
 
             if (vehicleId) {

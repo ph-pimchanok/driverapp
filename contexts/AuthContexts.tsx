@@ -8,8 +8,8 @@ type AuthContextType = {
   isLoggedIn: boolean;
   loading: boolean;
   error: string | null;
-  isInactive: boolean; // 💡 เช็คว่าโดนแบน/ระงับไหม
-  statusChecked: boolean; // 💡 เช็คว่าเช็คสถานะพนักงานเสร็จหรือยัง (กันหน้ากระพริบตอน redirect)
+  isInactive: boolean;
+  statusChecked: boolean;
   login: (payload: LoginPayload) => Promise<{ success: boolean; data?: any; error?: string }>;
   logout: () => Promise<void>;
   checkEmployeeStatus: () => Promise<void>;
@@ -18,13 +18,13 @@ type AuthContextType = {
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [isInactive, setIsInactive] = useState<boolean>(false);
-  const [statusChecked, setStatusChecked] = useState<boolean>(false); // 💡 เริ่มต้น false เสมอ
+  const [statusChecked, setStatusChecked] = useState<boolean>(false);
 
-  // เช็ค token ที่เคยบันทึกไว้ ตอนเปิดแอปครั้งแรก
   useEffect(() => {
     (async () => {
       try {
@@ -41,20 +41,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (payload: LoginPayload) => {
     setLoading(true);
     setError(null);
-    setStatusChecked(false); // 💡 reset ทุกครั้งก่อน login ใหม่ กันเคสค่าเก่าค้าง
+    setStatusChecked(false);
     try {
       const response = await axiosInstance.post<any, LoginResponse>(
         '/auth/login',
         payload
       );
 
-      if (response.token && response.role_ID && response.employee_name) {
+      if (response.role_ID !== 3) {
+        const errorMessage = 'ไม่มีสิทธิ์เข้าถึง';
+        setError(errorMessage);
+        return { success: false, error: errorMessage };
+      }
 
+      if (response.token && response.role_ID && response.employee_name) {
         await AsyncStorage.setItem('user_token', response.token);
         await AsyncStorage.setItem('role_ID', response.role_ID.toString());
         await AsyncStorage.setItem('employee_name', response.employee_name);
 
-        console.log(response)
+        console.log(response);
 
         const empId = response.employee_id;
 
@@ -66,7 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           await AsyncStorage.setItem('vehicle_id', response.vehicle_id.toString());
         }
 
-        setIsInactive(false); // ล้างค่าระงับตอนล็อกอินสำเร็จ
+        setIsInactive(false);
         setIsLoggedIn(true);
       }
 
@@ -88,8 +93,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       'vehicle_id',
       'employee_id'
     ]);
-    setIsInactive(false); // รีเซ็ตสถานะระงับ
-    setStatusChecked(false); // 💡 รีเซ็ตด้วย เผื่อ login ใหม่รอบหน้า
+    setIsInactive(false);
+    setStatusChecked(false);
     setIsLoggedIn(false);
   };
 
@@ -104,14 +109,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log("employeestatus from API:", employeeStatus);
 
       if (employeeStatus === 'inactive') {
-        setIsInactive(true); // 💡 ถ้าโดนแบน ให้เปลี่ยนสถานะเป็น true
+        setIsInactive(true);
       } else {
         setIsInactive(false);
       }
     } catch (error) {
       console.error("Error checking status", error);
     } finally {
-      setStatusChecked(true); // 💡 ไม่ว่าสำเร็จหรือ error ก็ต้องปิด flag นี้ ไม่งั้นแอปค้างที่หน้า loading ตลอด
+      setStatusChecked(true);
     }
   };
 

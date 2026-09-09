@@ -1,6 +1,6 @@
 import { io } from "socket.io-client";
 
-const SOCKET_URL = "http://10.77.71.216:5000"; 
+const SOCKET_URL = "https://project-nlko.onrender.com";
 
 export const socket = io(SOCKET_URL, {
   autoConnect: true,

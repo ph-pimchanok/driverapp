@@ -113,7 +113,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         setIsInactive(false);
       }
-    } catch (error) {
+    } catch (error:any) {
       console.error("Error checking status", error);
     } finally {
       setStatusChecked(true);

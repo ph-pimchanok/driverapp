@@ -6,7 +6,6 @@ import {
   TextInput,
   TouchableOpacity,
   ActivityIndicator,
-  SafeAreaView,
   KeyboardAvoidingView,
   Platform,
   TouchableWithoutFeedback,
@@ -15,6 +14,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../hooks/useAuth';
 import { Snackbar, SnackbarType } from '../components/Snackbar';
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export const LoginScreen = () => {
   const [email, setEmail] = useState<string>('');

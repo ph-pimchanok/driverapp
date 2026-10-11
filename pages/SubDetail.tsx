@@ -18,7 +18,7 @@ import { useOrder } from "@/hooks/useOrder";
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-
+// รายละเอียดของลูกค้าแค่ละคนที่อยู่ 
 const ORDER_STATUS_CONFIG: Record<
   string,
   { label: string; bg: string; text: string }
@@ -61,7 +61,7 @@ export const SubDetail: React.FC = () => {
     updateStatusVihicle
   } = useSubDetail(order_id, router);
 
-const onSubmitDelivery = async () => {
+  const onSubmitDelivery = async () => {
     try {
       await handleConfirmDelivery();
       triggerSnackbar("ยืนยันการจัดส่งสำเร็จ", "success");
@@ -69,19 +69,19 @@ const onSubmitDelivery = async () => {
       refetch();
 
       const remainingOrders = (orders || []).filter(
-        (o: any) => Number(o.order_id) !== Number(order_id) && 
-                    o.delivery_status !== "delivered" && 
-                    o.delivery_status !== "cancelled"
+        (o: any) => Number(o.order_id) !== Number(order_id) &&
+          o.delivery_status !== "delivered" &&
+          o.delivery_status !== "cancelled"
       );
 
       if (remainingOrders.length === 0) {
-            const vehicleId = await AsyncStorage.getItem('vehicle_id'); 
+        const vehicleId = await AsyncStorage.getItem('vehicle_id');
 
-            if (vehicleId) {
-              await updateStatusVihicle(vehicleId);
-            } else {
-              console.log("ไม่พบ ID รถใน Storage");
-            }
+        if (vehicleId) {
+          await updateStatusVihicle(vehicleId);
+        } else {
+          console.log("ไม่พบ ID รถใน Storage");
+        }
       }
 
       setTimeout(() => {
@@ -143,14 +143,18 @@ const onSubmitDelivery = async () => {
   const openGoogleMap = () => {
     const lat = latitude ? Number(latitude) : null;
     const lng = longitude ? Number(longitude) : null;
-    const query =
-      lat && lng ? `${lat},${lng}` : encodeURIComponent(String(address || ""));
+
+    if (!lat && !lng && !address) {
+      triggerSnackbar("ไม่พบข้อมูลพิกัดหรือที่อยู่สำหรับนำทาง", "error");
+      return;
+    }
+
+    const query = lat && lng ? `${lat},${lng}` : encodeURIComponent(String(address || ""));
     const webUrl = `https://www.google.com/maps/search/?api=1&query=${query}`;
 
-    Linking.canOpenURL(webUrl).then((supported) => {
-      if (supported) {
-        Linking.openURL(webUrl);
-      }
+    Linking.openURL(webUrl).catch((err) => {
+      console.error("An error occurred", err);
+      triggerSnackbar("ไม่สามารถเปิดแผนที่ได้", "error");
     });
   };
 

@@ -14,7 +14,9 @@ export const useOrder = () => {
         setError(null);
         try {
             const response = await axiosInstance.get<OrderResponse>(`/order/driver/${vehicle_id}`);
+
             setData(response.data as any);
+
         } catch (err: any) {
             setError(err.response?.data?.message || "เกิดข้อผิดพลาดในการดึงข้อมูล");
         } finally {
@@ -33,8 +35,8 @@ export const useOrder = () => {
         refetch();
     }, [refetch]);
 
-    // ** ส่วนจัดการ Socket Real-time **
     useEffect(() => {
+        
         const handleStatusUpdate = (payload: { order_id: number, status: string }) => {
             console.log("⚡ ได้รับ Socket Update:", payload);
 

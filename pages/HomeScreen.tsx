@@ -113,8 +113,7 @@ export const HomeScreen: React.FC = () => {
     }, [refetch]),
   );
 
-  const hasActiveOrder =
-    orders?.some((order: any) => isActiveOrder(order)) || false;
+  const hasActiveOrder = orders?.some((order: any) => isActiveOrder(order)) || false;
 
   useEffect(() => {
     if (loading || !orders?.length || !hasActiveOrder) {
@@ -141,7 +140,7 @@ export const HomeScreen: React.FC = () => {
     }
 
     if (!hasActiveOrder && optimizedOrders.length > 0) {
-      console.log("✅ ส่งครบทั้งรอบ → ลบ Route เก่า");
+      console.log("ส่งครบทั้งรอบ → ลบ Route เก่า");
 
       routeStartedRef.current = false;
       clearRoute();

@@ -16,7 +16,7 @@ export type ShopLocation = {
     longitude: string | number;
 };
 
-const GRAPH_HOPPER_API_KEY = "7bc441f0-eaa0-4862-8406-7aae576fec87";
+const GRAPH_HOPPER_API_KEY = "9dc6b9eb-a586-44c3-a638-be9ea3259b5a";
 const GRAPH_HOPPER_URL = "https://graphhopper.com/api/1/vrp";
 
 type GraphHopperActivity = {

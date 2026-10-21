@@ -15,7 +15,7 @@ export type ShopLocation = {
     latitude: string | number;
     longitude: string | number;
 };
-
+// เชื่อม graphhopper
 const GRAPH_HOPPER_API_KEY = "9dc6b9eb-a586-44c3-a638-be9ea3259b5a";
 const GRAPH_HOPPER_URL = "https://graphhopper.com/api/1/vrp";
 
@@ -47,7 +47,7 @@ type GraphHopperResponse = {
     };
     message?: string;
 };
-
+// เช็คข้อมูล
 export const optimizeRoute = async (
     orders: RouteOrder[],
     shopLocation: ShopLocation | null, // รับค่า shopLocation จาก useLocation
@@ -76,8 +76,8 @@ export const optimizeRoute = async (
 
     if (validOrders.length === 0) {
         return [];
-    }
-
+    }   
+    // ข้อมูล (JSON) ที่ส่งไปให้ GraphHopper เพื่อบอกว่าจะเริ่มจากที่ไหนและต้องไปส่งของที่ไหนบ้าง
     const requestBody = {
         vehicles: [
             {
@@ -109,6 +109,7 @@ export const optimizeRoute = async (
                 headers: {
                     "Content-Type": "application/json",
                 },
+                // ข้อมูลที่graphhopรับ
                 body: JSON.stringify(requestBody),
             },
         );

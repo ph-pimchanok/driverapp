@@ -38,10 +38,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })();
   }, []);
 
+// เข้าสู่ระบบ
   const login = async (payload: LoginPayload) => {
     setLoading(true);
     setError(null);
     setStatusChecked(false);
+    // ส่งข้อมูลpostไป auth/login
     try {
       const response = await axiosInstance.post<any, LoginResponse>(
         '/auth/login',
@@ -74,7 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setIsInactive(false);
         setIsLoggedIn(true);
       }
-
+      // sentผลการlogin
       return { success: true, data: response };
     } catch (err: any) {
       const errorMessage = err?.response?.data?.message || 'เบอร์โทรศัพท์หรือรหัสผ่านไม่ถูกต้อง';
@@ -84,7 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     }
   };
-
+  // ออกจากระบบ
   const logout = async () => {
     await AsyncStorage.multiRemove([
       'user_token',
@@ -93,11 +95,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       'vehicle_id',
       'employee_id'
     ]);
-    setIsInactive(false);
+    setIsInactive(false); //resetสถานะ
     setStatusChecked(false);
     setIsLoggedIn(false);
   };
-
+// ตรวจสอบพนักงาน
   const checkEmployeeStatus = async () => {
     try {
       const employeeId = await AsyncStorage.getItem('employee_id');
@@ -105,7 +107,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const response: any = await axiosInstance.get(`/employee/status/${employeeId}`);
       const employeeStatus = response?.status;
-
+      //logออกมาดู
       console.log("employeestatus from API:", employeeStatus);
 
       if (employeeStatus === 'inactive') {

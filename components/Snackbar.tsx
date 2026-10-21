@@ -14,7 +14,7 @@ interface SnackbarProps {
   icon?: keyof typeof Ionicons.glyphMap;
   backgroundColor?: string;
 }
-
+// ข้อความแจ้งเตือนex.กรุณากรอกรหัวใหม่
 export const Snackbar: React.FC<SnackbarProps> = ({ visible, message, onDismiss, duration = 2000, type = 'error', icon, backgroundColor,}) => {
 
   const insets = useSafeAreaInsets();

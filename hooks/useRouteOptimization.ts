@@ -66,12 +66,13 @@ export const useRouteOptimization = () => {
             if (!orders?.length) {
                 if (savedRoute) {
                     console.log("🧹 [API Check] API ไม่มีออเดอร์แล้ว แต่พบ Cache ค้างอยู่ -> เคลียร์ Store ทิ้ง");
+                    //ลบข้อมูลในstoreที่เป็นออเดอร์ทั้งหมด
                     await AsyncStorage.removeItem(ROUTE_STORAGE);
                 }
                 setOptimizedOrders([]);
                 return;
             }
-
+            // กรองออเดอร์ที่ยังไม่ได้ส่ง=สถานะไม่ตรงกับในนี้เลย
             const activeOrders = orders.filter(
                 (order: any) =>
                     order.delivery_status !== "delivered" &&
@@ -161,7 +162,7 @@ export const useRouteOptimization = () => {
             setLoading(false);
         }
     }, [location]);
-
+    //  เรียกไอเทที่อยู่ในstoreมาคำนวน
     const syncRouteWithOrders = useCallback(async (orders: any[]) => {
         try {
             const savedRoute = await AsyncStorage.getItem(ROUTE_STORAGE);

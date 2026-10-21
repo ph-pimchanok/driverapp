@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
 
+// แถบเมนุด้านล่าง
   return (
     <Tabs
       screenOptions={{
@@ -27,6 +28,7 @@ export default function TabLayout() {
         },
       }}
     >
+      {/* รายการที่1 */}
       <Tabs.Screen
         name="index"
         options={{

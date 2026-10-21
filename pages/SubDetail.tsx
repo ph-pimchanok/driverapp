@@ -18,7 +18,6 @@ import { useOrder } from "@/hooks/useOrder";
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// รายละเอียดของลูกค้าแค่ละคนที่อยู่ 
 const ORDER_STATUS_CONFIG: Record<
   string,
   { label: string; bg: string; text: string }
@@ -35,11 +34,13 @@ export const SubDetail: React.FC = () => {
   const params = useLocalSearchParams();
   const order_id = String(params.order_id || "30");
 
-  // State สำหรับ Snackbar (อิงตามรูปแบบหน้า Login)
+  // State สำหรับ Snackbar
   const [snackbarVisible, setSnackbarVisible] = useState<boolean>(false);
   const [snackbarMessage, setSnackbarMessage] = useState<string>("");
   const [snackbarType, setSnackbarType] = useState<SnackbarType>("info");
 
+  // 💡 State สำหรับเลือกวิธีชำระเงิน ('cash' หรือ 'transfer')
+  const [paymentMethod, setPaymentMethod] = useState<"cash" | "transfer">("cash");
 
   const { data: orders, refetch } = useOrder();
 
@@ -63,25 +64,25 @@ export const SubDetail: React.FC = () => {
 
   const onSubmitDelivery = async () => {
     try {
-      await handleConfirmDelivery();
+      await handleConfirmDelivery(paymentMethod);
       triggerSnackbar("ยืนยันการจัดส่งสำเร็จ", "success");
 
       refetch();
 
       const remainingOrders = (orders || []).filter(
-        (o: any) => Number(o.order_id) !== Number(order_id) &&
-          o.delivery_status !== "delivered" &&
-          o.delivery_status !== "cancelled"
+        (o: any) => Number(o.order_id) !== Number(order_id) && 
+                    o.delivery_status !== "delivered" && 
+                    o.delivery_status !== "cancelled"
       );
 
       if (remainingOrders.length === 0) {
-        const vehicleId = await AsyncStorage.getItem('vehicle_id');
+            const vehicleId = await AsyncStorage.getItem('vehicle_id'); 
 
-        if (vehicleId) {
-          await updateStatusVihicle(vehicleId);
-        } else {
-          console.log("ไม่พบ ID รถใน Storage");
-        }
+            if (vehicleId) {
+              await updateStatusVihicle(vehicleId);
+            } else {
+              console.log("ไม่พบ ID รถใน Storage");
+            }
       }
 
       setTimeout(() => {
@@ -143,7 +144,7 @@ export const SubDetail: React.FC = () => {
   const openGoogleMap = () => {
     const lat = latitude ? Number(latitude) : null;
     const lng = longitude ? Number(longitude) : null;
-
+    
     if (!lat && !lng && !address) {
       triggerSnackbar("ไม่พบข้อมูลพิกัดหรือที่อยู่สำหรับนำทาง", "error");
       return;
@@ -170,7 +171,6 @@ export const SubDetail: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
-      {/* Custom Animated Snackbar */}
       <Snackbar
         visible={snackbarVisible}
         message={snackbarMessage}
@@ -329,6 +329,58 @@ export const SubDetail: React.FC = () => {
                 <Ionicons name="camera-outline" size={22} color="#ffffff" />
                 <Text style={styles.takePhotoButtonText}>ถ่ายรูปยืนยัน</Text>
               </TouchableOpacity>
+            )}
+
+            {/* 💡 ส่วนเลือกประเภทการชำระเงิน (แสดงเมื่อถ่ายรูปแล้ว) */}
+            {proofPhoto && (
+              <View style={styles.paymentSection}>
+                <Text style={styles.paymentLabel}>เลือกวิธีชำระเงิน:</Text>
+                <View style={styles.paymentOptionsRow}>
+                  <TouchableOpacity
+                    style={[
+                      styles.paymentOptionButton,
+                      paymentMethod === "cash" && styles.paymentOptionActiveCash,
+                    ]}
+                    onPress={() => setPaymentMethod("cash")}
+                  >
+                    <Ionicons
+                      name="cash-outline"
+                      size={18}
+                      color={paymentMethod === "cash" ? "#ffffff" : "#334155"}
+                    />
+                    <Text
+                      style={[
+                        styles.paymentOptionText,
+                        paymentMethod === "cash" && styles.paymentOptionTextActive,
+                      ]}
+                    >
+                      เงินสด
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[
+                      styles.paymentOptionButton,
+                      paymentMethod === "transfer" && styles.paymentOptionActiveTransfer,
+                    ]}
+                    onPress={() => setPaymentMethod("transfer")}
+                  >
+                    <Ionicons
+                      name="card-outline"
+                      size={18}
+                      color={paymentMethod === "transfer" ? "#ffffff" : "#334155"}
+                    />
+                    <Text
+                      style={[
+                        styles.paymentOptionText,
+                        paymentMethod === "transfer" && styles.paymentOptionTextActive,
+                      ]}
+                    >
+                      โอนจ่าย
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
             )}
 
             <TouchableOpacity
@@ -508,6 +560,50 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   retakeButtonText: { color: "#0284c7", fontSize: 13, fontWeight: "600" },
+  
+  // 💡 เพิ่มสไตล์สำหรับปุ่มเลือกวิธีการชำระเงิน
+  paymentSection: {
+    marginBottom: 14,
+  },
+  paymentLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#334155",
+    marginBottom: 8,
+  },
+  paymentOptionsRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  paymentOptionButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: "#cbd5e1",
+    borderRadius: 10,
+    backgroundColor: "#f8fafc",
+    gap: 6,
+  },
+  paymentOptionActiveCash: {
+    backgroundColor: "#10b981",
+    borderColor: "#10b981",
+  },
+  paymentOptionActiveTransfer: {
+    backgroundColor: "#0284c7",
+    borderColor: "#0284c7",
+  },
+  paymentOptionText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#334155",
+  },
+  paymentOptionTextActive: {
+    color: "#ffffff",
+  },
+
   confirmButton: {
     flexDirection: "row",
     backgroundColor: "#10b981",

@@ -25,13 +25,20 @@ export default function RootLayout() {
     };
   }, []);
 
+  // ซ่อนแถบสถานะด้านบน
   return (
     <AuthProvider>
-      <StatusBar hidden={true} translucent />
+      <StatusBar hidden={true} />
       <RootLayoutNav />
     </AuthProvider>
   );
 }
+
+ // isLoggedIn = สถานะว่าล็อกอินอยู่หรือไม่
+  // loading = กำลังตรวจสอบการล็อกอินหรือไม่
+  // checkEmployeeStatus = ฟังก์ชันตรวจสอบสถานะพนักงาน
+  // isInactive = พนักงานถูกปิดใช้งานหรือไม่
+  // statusChecked = ตรวจสอบสถานะพนักงานเสร็จแล้วหรือยัง
 
 function RootLayoutNav() {
   const { isLoggedIn, loading, checkEmployeeStatus, isInactive, statusChecked } = useAuth();
@@ -47,11 +54,11 @@ function RootLayoutNav() {
 
   useEffect(() => {
     if (loading) return;
-    // 💡 ถ้า login อยู่แต่ยังเช็คสถานะพนักงานไม่เสร็จ ห้าม route ก่อน — นี่คือจุดกันกระพริบ
+    //  ถ้า login อยู่แต่ยังเช็คสถานะพนักงานไม่เสร็จ ห้าม route ก่อน — นี่คือจุดกันกระพริบ
     if (isLoggedIn && !statusChecked) return;
 
     const inAuthGroup = segments[0] === 'login';
-    const inSuspendedScreen = segments[0] === 'suspended';
+    const inSuspendedScreen = segments[0] === 'suspended'; //หน้าแจ้ง บช ถูกระงับ  
 
     if (isLoggedIn && isInactive && !inSuspendedScreen) {
       router.replace('/suspended');

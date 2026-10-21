@@ -44,7 +44,6 @@ export const useSubDetail = (order_id: string | number, router: any) => {
       return;
     }
 
-
     const result = await ImagePicker.launchCameraAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       quality: 0.7,
@@ -60,7 +59,8 @@ export const useSubDetail = (order_id: string | number, router: any) => {
     setProofPhoto(null);
   };
 
-  const handleConfirmDelivery = async () => {
+
+  const handleConfirmDelivery = async (paymentMethod: 'cash' | 'transfer' = 'cash') => {
     if (!proofPhoto) {
       Alert.alert('กรุณาถ่ายรูป', 'ต้องถ่ายรูปยืนยันการจัดส่งก่อน');
       return;
@@ -75,25 +75,23 @@ export const useSubDetail = (order_id: string | number, router: any) => {
 
       await axiosInstance.put(`/order/upload/${order_id}`, {
         imageBase64: base64,
+        payment_method: paymentMethod,
       });
 
     } catch (error: any) {
       console.error(error);
       const errorMsg = error.response?.data?.message || 'ไม่สามารถยืนยันการจัดส่งได้ กรุณาลองใหม่อีกครั้ง';
       Alert.alert('เกิดข้อผิดพลาด', errorMsg);
+      throw error; // ส่ง Error ต่อเพื่อให้ component แม่จับและแสดง Snackbar ได้ถูกต้อง
     } finally {
       setIsConfirming(false);
     }
   };
 
   const updateStatusVihicle = async (id: string | number) => {
-
     try{
-
       setError(null)
-
       await axiosInstance.put(`/vehicle/status/${id}`)
-      
     }catch(err:any) {
       setError(err.response?.data?.message || err.message || "เกิดข้อผิดพลาดในการอัพเดดข้อมูล"); 
     }finally{

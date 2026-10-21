@@ -66,6 +66,8 @@ export const useSubDetail = (order_id: string | number, router: any) => {
       return;
     }
 
+    console.log("Payment Method",paymentMethod);
+    
     setIsConfirming(true);
     try {
 
